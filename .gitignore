@@ -1,0 +1,14 @@
+# Build directory
+build/
+
+# macOS
+.DS_Store
+
+# Qt / generated files
+*.user
+
+# Compiled binaries
+*.o
+*.a
+*.dylib
+*.app
