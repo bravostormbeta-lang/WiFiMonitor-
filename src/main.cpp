@@ -1,8 +1,16 @@
-#include <iostream>
+#include <QGuiApplication>
+#include <QQmlApplicationEngine>
 
-int main()
+int main(int argc, char *argv[])
 {
-    std::cout << "WiFi Monitor starting...\n";
+    QGuiApplication app(argc, argv);
 
-    return 0;
+    QQmlApplicationEngine engine;
+
+    engine.loadFromModule("WiFiMonitorUI", "Main");
+
+    if (engine.rootObjects().isEmpty())
+        return -1;
+
+    return app.exec();
 }
