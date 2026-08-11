@@ -9,7 +9,7 @@ class WiFiMonitor
 public:
     explicit WiFiMonitor(IWiFiPlatform* platform);
 
-    WiFiNetwork getCurrentNetwork();
+    WiFiNetwork getCurrentNetwork() const;
 
 private:
     IWiFiPlatform* platform;

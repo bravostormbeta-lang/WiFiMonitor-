@@ -20,6 +20,7 @@ qt_add_executable(WiFiMonitor
 
     src/core/WiFiMonitor.cpp
     src/platform/macos/WiFiMacOS.mm
+    src/ui/WiFiMonitorController.cpp
 )
 
 qt_add_qml_module(WiFiMonitor

@@ -5,7 +5,7 @@ WiFiMonitor::WiFiMonitor(IWiFiPlatform* platform)
 {
 }
 
-WiFiNetwork WiFiMonitor::getCurrentNetwork()
+WiFiNetwork WiFiMonitor::getCurrentNetwork() const
 {
     return platform->getCurrentNetwork();
 }
