@@ -20,6 +20,7 @@ class WiFiMonitorController : public QObject
     Q_PROPERTY(QString band READ band NOTIFY bandChanged)
     Q_PROPERTY(QString phyMode READ phyMode NOTIFY phyModeChanged)
     Q_PROPERTY(QString channelWidth READ channelWidth NOTIFY channelWidthChanged)
+    Q_PROPERTY(bool connected READ connected NOTIFY connectedChanged)
 
 public:
     explicit WiFiMonitorController(QObject *parent = nullptr);
@@ -33,6 +34,7 @@ public:
     QString band() const;
     QString phyMode() const;
     QString channelWidth() const;
+    bool connected() const;
 
     void refresh();
 
@@ -46,7 +48,7 @@ signals:
     void bandChanged();
     void phyModeChanged();
     void channelWidthChanged();
-    
+    void connectedChanged();
 
 private:
     WiFiMacOS platform;
@@ -54,6 +56,8 @@ private:
     QTimer timer;
 
     WiFiNetwork currentNetwork;
+
+    bool m_connected = false;
 };
 
 #endif

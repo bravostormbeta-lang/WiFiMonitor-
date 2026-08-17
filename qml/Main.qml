@@ -21,47 +21,91 @@ Window {
         }
 
         Text {
-            text: "Network: " + wifiController.ssid
+            text: wifiController.connected
+                  ? "● Connected"
+                  : "● Not Connected"
+
             font.pixelSize: 22
         }
 
         Text {
-            text: "BSSID: " + wifiController.bssid
+            text: "Network: " +
+                  (wifiController.connected
+                   ? wifiController.ssid
+                   : "—")
+
             font.pixelSize: 22
         }
 
         Text {
-            text: "RSSI: " + wifiController.signalStrength + " dBm"
+            text: "BSSID: " +
+                  (wifiController.connected
+                   ? wifiController.bssid
+                   : "—")
+
             font.pixelSize: 22
         }
 
         Text {
-            text: "Noise: " + wifiController.noise + " dBm"
+            text: "RSSI: " +
+                  (wifiController.connected
+                   ? wifiController.signalStrength + " dBm"
+                   : "—")
+
             font.pixelSize: 22
         }
 
         Text {
-            text: "Transmit Rate: " + wifiController.transmitRate + " Mbps"
+            text: "Noise: " +
+                  (wifiController.connected
+                   ? wifiController.noise + " dBm"
+                   : "—")
+
             font.pixelSize: 22
         }
 
         Text {
-            text: "Channel: " + wifiController.channel
+            text: "Transmit Rate: " +
+                  (wifiController.connected
+                   ? wifiController.transmitRate + " Mbps"
+                   : "—")
+
             font.pixelSize: 22
         }
 
         Text {
-            text: "Band: " + wifiController.band
+            text: "Channel: " +
+                  (wifiController.connected
+                   ? wifiController.channel
+                   : "—")
+
             font.pixelSize: 22
         }
 
         Text {
-            text: "PHY: " + wifiController.phyMode
+            text: "Band: " +
+                  (wifiController.connected
+                   ? wifiController.band
+                   : "—")
+
             font.pixelSize: 22
         }
 
         Text {
-            text: "Channel Width: " + wifiController.channelWidth
+            text: "PHY: " +
+                  (wifiController.connected
+                   ? wifiController.phyMode
+                   : "—")
+
+            font.pixelSize: 22
+        }
+
+        Text {
+            text: "Channel Width: " +
+                  (wifiController.connected
+                   ? wifiController.channelWidth
+                   : "—")
+
             font.pixelSize: 22
         }
     }

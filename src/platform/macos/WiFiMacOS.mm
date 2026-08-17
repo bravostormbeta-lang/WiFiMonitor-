@@ -1,6 +1,140 @@
 #include "WiFiMacOS.h"
 
 #import <CoreWLAN/CoreWLAN.h>
+#import <CoreLocation/CoreLocation.h>
+#import <Foundation/Foundation.h>
+
+#include <functional>
+#include <string>
+
+@interface WiFiLocationDelegate : NSObject <CLLocationManagerDelegate>
+@end
+
+@implementation WiFiLocationDelegate
+
+- (void)locationManagerDidChangeAuthorization:(CLLocationManager *)manager
+{
+    NSLog(@"WiFi Monitor location authorization status: %ld",
+          (long)manager.authorizationStatus);
+}
+
+@end
+
+
+@interface WiFiEventDelegate : NSObject <CWEventDelegate>
+
+@property(nonatomic, copy) void (^linkChangeHandler)(NSString *interfaceName);
+
+@end
+
+@implementation WiFiEventDelegate
+
+- (void)linkDidChangeForWiFiInterfaceWithName:(NSString *)interfaceName
+{
+    if (self.linkChangeHandler)
+    {
+        self.linkChangeHandler(interfaceName);
+    }
+}
+
+@end
+
+
+class WiFiMacOSPrivate
+{
+public:
+
+    CWWiFiClient *client;
+
+    __strong WiFiEventDelegate *delegate;
+
+    __strong CLLocationManager *locationManager;
+    __strong WiFiLocationDelegate *locationDelegate;
+
+    std::function<void(NSString *)> linkChangeHandler;
+
+    WiFiMacOSPrivate()
+    {
+        client = [CWWiFiClient sharedWiFiClient];
+
+        delegate = [[WiFiEventDelegate alloc] init];
+
+        locationDelegate = [[WiFiLocationDelegate alloc] init];
+
+        locationManager = [[CLLocationManager alloc] init];
+
+        locationManager.delegate = locationDelegate;
+
+        /*
+         * Request macOS Location Services permission.
+         *
+         * SSID/BSSID access can be restricted by macOS privacy
+         * controls even though other CoreWLAN measurements work.
+         */
+        if (locationManager.authorizationStatus == kCLAuthorizationStatusNotDetermined)
+        {
+            [locationManager requestWhenInUseAuthorization];
+        }
+
+        /*
+         * Forward CoreWLAN link-change events to the C++ layer.
+         */
+        delegate.linkChangeHandler =
+            ^(NSString *interfaceName)
+            {
+                if (linkChangeHandler)
+                {
+                    linkChangeHandler(interfaceName);
+                }
+            };
+
+        client.delegate = delegate;
+
+        NSError *error = nil;
+
+        BOOL success =
+            [client startMonitoringEventWithType:
+                        CWEventTypeLinkDidChange
+                                         error:&error];
+
+        if (success)
+        {
+            NSLog(@"CoreWLAN link-change event monitoring started.");
+        }
+        else
+        {
+            NSLog(@"Failed to start CoreWLAN link-change event monitoring: %@",
+                  error);
+        }
+    }
+};
+
+
+WiFiMacOS::WiFiMacOS()
+    : d(new WiFiMacOSPrivate)
+{
+}
+
+
+WiFiMacOS::~WiFiMacOS()
+{
+    delete d;
+}
+
+
+void WiFiMacOS::setLinkChangeCallback(
+    std::function<void()> callback)
+{
+    d->linkChangeHandler =
+        [callback](NSString *)
+        {
+            if (callback)
+            {
+                callback();
+            }
+        };
+}
+
 
 WiFiNetwork WiFiMacOS::getCurrentNetwork()
 {
@@ -15,27 +149,75 @@ WiFiNetwork WiFiMacOS::getCurrentNetwork()
         return network;
     }
 
-    NSString *ssid = [interface ssid];
+    /*
+     * Determine connection state using the active PHY mode.
+     *
+     * kCWPHYModeNone means the interface is not participating
+     * in a Wi-Fi network.
+     */
+    CWPHYMode activePHYMode = [interface activePHYMode];
 
-    if (ssid != nil)
+    network.connected =
+        (activePHYMode != kCWPHYModeNone);
+
+    /*
+     * SSID
+     *
+     * Prefer ssidData because it gives us the raw SSID bytes.
+     */
+    NSData *ssidData = [interface ssidData];
+
+    if (ssidData != nil)
     {
-        network.ssid = [[ssid description] UTF8String];
+        NSString *ssid =
+            [[NSString alloc] initWithData:ssidData
+                                   encoding:NSUTF8StringEncoding];
+
+        if (ssid != nil)
+        {
+            network.ssid = [ssid UTF8String];
+        }
     }
 
+    /*
+     * Fallback to the string-based SSID API.
+     */
+    if (network.ssid.empty())
+    {
+        NSString *ssid = [interface ssid];
+
+        if (ssid != nil)
+        {
+            network.ssid = [ssid UTF8String];
+        }
+    }
+
+    /*
+     * BSSID
+     */
     NSString *bssid = [interface bssid];
 
     if (bssid != nil)
     {
-        network.bssid = [[bssid description] UTF8String];
+        network.bssid = [bssid UTF8String];
     }
 
-    network.signalStrength = [interface rssiValue];
+    /*
+     * Live radio measurements.
+     */
+    network.signalStrength =
+        [interface rssiValue];
 
-    network.noise = [interface noiseMeasurement];
+    network.noise =
+        [interface noiseMeasurement];
 
-    network.transmitRate = [interface transmitRate];
+    network.transmitRate =
+        [interface transmitRate];
 
-    switch ([interface activePHYMode])
+    /*
+     * PHY mode.
+     */
+    switch (activePHYMode)
     {
         case kCWPHYMode11a:
             network.phyMode = "802.11a";
@@ -66,11 +248,16 @@ WiFiNetwork WiFiMacOS::getCurrentNetwork()
             break;
     }
 
-    CWChannel *channel = [interface wlanChannel];
+    /*
+     * Channel, band and channel width.
+     */
+    CWChannel *channel =
+        [interface wlanChannel];
 
     if (channel != nil)
     {
-        network.channel = [channel channelNumber];
+        network.channel =
+            [channel channelNumber];
 
         switch ([channel channelBand])
         {

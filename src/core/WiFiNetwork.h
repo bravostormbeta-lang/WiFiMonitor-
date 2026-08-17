@@ -5,15 +5,17 @@
 
 struct WiFiNetwork
 {
+    bool connected = false;
+
     std::string ssid;
     std::string bssid;
 
-    int signalStrength;
-    int noise;
+    int signalStrength = 0;
+    int noise = 0;
 
-    double transmitRate;
+    double transmitRate = 0.0;
 
-    int channel;
+    int channel = 0;
 
     std::string band;
     std::string phyMode;

@@ -7,6 +7,15 @@ WiFiMonitorController::WiFiMonitorController(QObject *parent)
 {
     currentNetwork = monitor.getCurrentNetwork();
 
+    m_connected = currentNetwork.connected;
+
+    platform.setLinkChangeCallback(
+        [this]()
+        {
+            refresh();
+        }
+    );
+
     timer.setInterval(1000);
 
     connect(&timer, &QTimer::timeout,
@@ -60,9 +69,27 @@ QString WiFiMonitorController::channelWidth() const
     return QString::fromStdString(currentNetwork.channelWidth);
 }
 
+bool WiFiMonitorController::connected() const
+{
+    return m_connected;
+}
+
 void WiFiMonitorController::refresh()
 {
     WiFiNetwork newNetwork = monitor.getCurrentNetwork();
+
+    bool newConnected = newNetwork.connected;
+
+    if (newConnected != m_connected)
+    {
+        m_connected = newConnected;
+        emit connectedChanged();
+    }
+
+    if (newNetwork.connected != currentNetwork.connected)
+{
+    currentNetwork.connected = newNetwork.connected;
+}
 
     if (newNetwork.signalStrength != currentNetwork.signalStrength)
     {
