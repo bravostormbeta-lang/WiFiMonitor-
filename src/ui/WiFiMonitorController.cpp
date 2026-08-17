@@ -3,25 +3,26 @@
 WiFiMonitorController::WiFiMonitorController(QObject *parent)
     : QObject(parent),
       platform(),
-      monitor(&platform)
+      monitor(&platform),
+      history(60)
 {
     currentNetwork = monitor.getCurrentNetwork();
 
-    m_connected = currentNetwork.connected;
-
-    platform.setLinkChangeCallback(
-        [this]()
-        {
-            refresh();
-        }
-    );
-
     timer.setInterval(1000);
 
-    connect(&timer, &QTimer::timeout,
-            this, &WiFiMonitorController::refresh);
+    connect(&timer,
+            &QTimer::timeout,
+            this,
+            &WiFiMonitorController::refresh);
 
     timer.start();
+
+    refresh();
+}
+
+bool WiFiMonitorController::connected() const
+{
+    return currentNetwork.connected;
 }
 
 int WiFiMonitorController::signalStrength() const
@@ -69,27 +70,72 @@ QString WiFiMonitorController::channelWidth() const
     return QString::fromStdString(currentNetwork.channelWidth);
 }
 
-bool WiFiMonitorController::connected() const
+int WiFiMonitorController::snr() const
 {
-    return m_connected;
+    return currentNetwork.snr;
+}
+
+QString WiFiMonitorController::signalQuality() const
+{
+    return QString::fromStdString(currentNetwork.signalQuality);
+}
+
+QString WiFiMonitorController::snrQuality() const
+{
+    return QString::fromStdString(currentNetwork.snrQuality);
+}
+
+QVariantList WiFiMonitorController::rssiHistory() const
+{
+    QVariantList result;
+
+    for (const int value : history.rssi())
+        result.append(value);
+
+    return result;
+}
+
+QVariantList WiFiMonitorController::snrHistory() const
+{
+    QVariantList result;
+
+    for (const int value : history.snr())
+        result.append(value);
+
+    return result;
+}
+
+QVariantList WiFiMonitorController::noiseHistory() const
+{
+    QVariantList result;
+
+    for (const int value : history.noise())
+        result.append(value);
+
+    return result;
+}
+
+QVariantList WiFiMonitorController::transmitRateHistory() const
+{
+    QVariantList result;
+
+    for (const double value : history.transmitRate())
+        result.append(value);
+
+    return result;
 }
 
 void WiFiMonitorController::refresh()
 {
     WiFiNetwork newNetwork = monitor.getCurrentNetwork();
 
-    bool newConnected = newNetwork.connected;
-
-    if (newConnected != m_connected)
-    {
-        m_connected = newConnected;
-        emit connectedChanged();
-    }
+    bool oldConnected = currentNetwork.connected;
 
     if (newNetwork.connected != currentNetwork.connected)
-{
-    currentNetwork.connected = newNetwork.connected;
-}
+    {
+        currentNetwork.connected = newNetwork.connected;
+        emit connectedChanged();
+    }
 
     if (newNetwork.signalStrength != currentNetwork.signalStrength)
     {
@@ -143,5 +189,52 @@ void WiFiMonitorController::refresh()
     {
         currentNetwork.channelWidth = newNetwork.channelWidth;
         emit channelWidthChanged();
+    }
+
+    if (newNetwork.snr != currentNetwork.snr)
+    {
+        currentNetwork.snr = newNetwork.snr;
+        emit snrChanged();
+    }
+
+    if (newNetwork.signalQuality != currentNetwork.signalQuality)
+    {
+        currentNetwork.signalQuality = newNetwork.signalQuality;
+        emit signalQualityChanged();
+    }
+
+    if (newNetwork.snrQuality != currentNetwork.snrQuality)
+    {
+        currentNetwork.snrQuality = newNetwork.snrQuality;
+        emit snrQualityChanged();
+    }
+
+    /*
+     * Only record samples while connected.
+     *
+     * When Wi-Fi disconnects, we don't want a stream of
+     * meaningless zero values filling the history graph.
+     */
+    if (newNetwork.connected)
+    {
+        history.addSample(
+            newNetwork.signalStrength,
+            newNetwork.snr,
+            newNetwork.noise,
+            newNetwork.transmitRate
+        );
+
+        emit historyChanged();
+    }
+    else if (oldConnected)
+    {
+        /*
+         * Wi-Fi has just disconnected.
+         *
+         * Clear the old history so that when a new connection
+         * appears, the graph starts fresh.
+         */
+        history.clear();
+        emit historyChanged();
     }
 }

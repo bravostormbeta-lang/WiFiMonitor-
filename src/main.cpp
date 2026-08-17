@@ -17,10 +17,22 @@ int main(int argc, char *argv[])
         &controller
     );
 
-    engine.loadFromModule("WiFiMonitorUI", "Main");
+    const QUrl url(
+        QStringLiteral("qrc:/qt/qml/WiFiMonitor/qml/Main.qml")
+    );
 
-    if (engine.rootObjects().isEmpty())
-        return -1;
+    QObject::connect(
+        &engine,
+        &QQmlApplicationEngine::objectCreationFailed,
+        &app,
+        []()
+        {
+            QCoreApplication::exit(-1);
+        },
+        Qt::QueuedConnection
+    );
+
+    engine.load(url);
 
     return app.exec();
 }
