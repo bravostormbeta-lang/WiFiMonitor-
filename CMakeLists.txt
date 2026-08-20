@@ -44,21 +44,20 @@ find_library(CORELOCATION_FRAMEWORK
 
 
 # ============================================================
-# Executable
+# Main application
 # ============================================================
 
 qt_add_executable(WiFiMonitor
-
     src/main.cpp
 
-    # Core
     src/core/WiFiMonitor.cpp
+
     src/core/WiFiHistory.cpp
 
-    # macOS platform
+    src/core/WiFiChannelAnalyzer.cpp
+
     src/platform/macos/WiFiMacOS.mm
 
-    # UI / controller
     src/ui/WiFiMonitorController.cpp
 )
 
@@ -97,7 +96,7 @@ set_target_properties(WiFiMonitor PROPERTIES
 
 
 # ============================================================
-# Libraries / frameworks
+# Main application libraries / frameworks
 # ============================================================
 
 target_link_libraries(WiFiMonitor
@@ -109,4 +108,55 @@ target_link_libraries(WiFiMonitor
     ${COREWLAN_FRAMEWORK}
     ${FOUNDATION_FRAMEWORK}
     ${CORELOCATION_FRAMEWORK}
+)
+
+
+# ============================================================
+# Tests
+# ============================================================
+
+enable_testing()
+
+
+# ============================================================
+# WiFiChannelAnalyzer test executable
+#
+# This target is intentionally independent of Qt and the
+# WiFiMonitor application. It tests the pure C++ analyzer
+# directly with controlled Wi-Fi scenarios.
+# ============================================================
+
+add_executable(WiFiChannelAnalyzerTests
+
+    tests/WiFiChannelAnalyzerTests.cpp
+
+    src/core/WiFiChannelAnalyzer.cpp
+)
+
+
+target_include_directories(WiFiChannelAnalyzerTests
+
+    PRIVATE
+
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/core
+)
+
+
+set_target_properties(WiFiChannelAnalyzerTests PROPERTIES
+
+    CXX_STANDARD 17
+    CXX_STANDARD_REQUIRED ON
+    CXX_EXTENSIONS OFF
+)
+
+
+# ============================================================
+# Register analyzer tests with CTest
+# ============================================================
+
+add_test(
+
+    NAME WiFiChannelAnalyzerTests
+
+    COMMAND WiFiChannelAnalyzerTests
 )

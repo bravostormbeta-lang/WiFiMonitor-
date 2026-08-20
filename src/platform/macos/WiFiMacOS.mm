@@ -4,42 +4,50 @@
 #import <CoreLocation/CoreLocation.h>
 #import <Foundation/Foundation.h>
 
+#include <algorithm>
 #include <functional>
 #include <string>
+#include <vector>
 
 
-// ================================================================
-// Location Services Delegate
-// ================================================================
+// ============================================================
+// Location Services delegate
+// ============================================================
 
 @interface WiFiLocationDelegate : NSObject <CLLocationManagerDelegate>
 @end
 
+
 @implementation WiFiLocationDelegate
 
-- (void)locationManagerDidChangeAuthorization:(CLLocationManager *)manager
+- (void)locationManagerDidChangeAuthorization:
+    (CLLocationManager *)manager
 {
-    NSLog(@"WiFi Monitor location authorization status: %ld",
-          (long)manager.authorizationStatus);
+    NSLog(
+        @"WiFi Monitor location authorization status: %ld",
+        (long)manager.authorizationStatus
+    );
 }
 
 @end
 
 
-// ================================================================
-// CoreWLAN Event Delegate
-// ================================================================
+// ============================================================
+// CoreWLAN event delegate
+// ============================================================
 
 @interface WiFiEventDelegate : NSObject <CWEventDelegate>
 
-@property(nonatomic, copy) void (^linkChangeHandler)(NSString *interfaceName);
+@property(nonatomic, copy)
+    void (^linkChangeHandler)(NSString *interfaceName);
 
 @end
 
 
 @implementation WiFiEventDelegate
 
-- (void)linkDidChangeForWiFiInterfaceWithName:(NSString *)interfaceName
+- (void)linkDidChangeForWiFiInterfaceWithName:
+    (NSString *)interfaceName
 {
     if (self.linkChangeHandler)
     {
@@ -50,9 +58,9 @@
 @end
 
 
-// ================================================================
+// ============================================================
 // Private implementation
-// ================================================================
+// ============================================================
 
 class WiFiMacOSPrivate
 {
@@ -63,6 +71,7 @@ public:
     __strong WiFiEventDelegate *delegate;
 
     __strong CLLocationManager *locationManager;
+
     __strong WiFiLocationDelegate *locationDelegate;
 
     std::function<void(NSString *)> linkChangeHandler;
@@ -70,9 +79,28 @@ public:
 
     WiFiMacOSPrivate()
     {
-        client = [CWWiFiClient sharedWiFiClient];
+        // --------------------------------------------------------
+        // CoreWLAN client
+        // --------------------------------------------------------
 
-        delegate = [[WiFiEventDelegate alloc] init];
+        client =
+            [CWWiFiClient sharedWiFiClient];
+
+
+        // --------------------------------------------------------
+        // Wi-Fi event delegate
+        // --------------------------------------------------------
+
+        delegate =
+            [[WiFiEventDelegate alloc] init];
+
+
+        // --------------------------------------------------------
+        // Location Services
+        //
+        // macOS can restrict SSID/BSSID information without
+        // Location Services authorization.
+        // --------------------------------------------------------
 
         locationDelegate =
             [[WiFiLocationDelegate alloc] init];
@@ -84,13 +112,6 @@ public:
             locationDelegate;
 
 
-        // --------------------------------------------------------
-        // Request Location Services permission.
-        //
-        // macOS may restrict SSID/BSSID information unless
-        // Location Services permission is available.
-        // --------------------------------------------------------
-
         if (locationManager.authorizationStatus ==
             kCLAuthorizationStatusNotDetermined)
         {
@@ -99,7 +120,7 @@ public:
 
 
         // --------------------------------------------------------
-        // Forward CoreWLAN link-change events to C++.
+        // Forward CoreWLAN link events into C++
         // --------------------------------------------------------
 
         delegate.linkChangeHandler =
@@ -115,30 +136,38 @@ public:
         client.delegate = delegate;
 
 
+        // --------------------------------------------------------
+        // Start link-change monitoring
+        // --------------------------------------------------------
+
         NSError *error = nil;
 
         BOOL success =
             [client startMonitoringEventWithType:
                         CWEventTypeLinkDidChange
-                                         error:&error];
-
+                                           error:&error];
 
         if (success)
         {
-            NSLog(@"CoreWLAN link-change event monitoring started.");
+            NSLog(
+                @"CoreWLAN link-change event monitoring started."
+            );
         }
         else
         {
-            NSLog(@"Failed to start CoreWLAN link-change event monitoring: %@",
-                  error);
+            NSLog(
+                @"Failed to start CoreWLAN link-change "
+                @"event monitoring: %@",
+                error
+            );
         }
     }
 };
 
 
-// ================================================================
-// Constructor / Destructor
-// ================================================================
+// ============================================================
+// WiFiMacOS
+// ============================================================
 
 WiFiMacOS::WiFiMacOS()
     : d(new WiFiMacOSPrivate)
@@ -152,9 +181,9 @@ WiFiMacOS::~WiFiMacOS()
 }
 
 
-// ================================================================
+// ============================================================
 // Link-change callback
-// ================================================================
+// ============================================================
 
 void WiFiMacOS::setLinkChangeCallback(
     std::function<void()> callback)
@@ -170,14 +199,13 @@ void WiFiMacOS::setLinkChangeCallback(
 }
 
 
-// ================================================================
-// Get current Wi-Fi network
-// ================================================================
+// ============================================================
+// Current network
+// ============================================================
 
 WiFiNetwork WiFiMacOS::getCurrentNetwork()
 {
     WiFiNetwork network;
-
 
     CWWiFiClient *client =
         [CWWiFiClient sharedWiFiClient];
@@ -186,69 +214,39 @@ WiFiNetwork WiFiMacOS::getCurrentNetwork()
         [client interface];
 
 
-    // ------------------------------------------------------------
-    // No Wi-Fi interface available.
-    // ------------------------------------------------------------
-
     if (interface == nil)
     {
         return network;
     }
 
 
-    // ------------------------------------------------------------
-    // Determine connection state.
-    //
-    // kCWPHYModeNone means the interface isn't currently
-    // participating in a Wi-Fi network.
-    // ------------------------------------------------------------
+    // --------------------------------------------------------
+    // Determine connection state
+    // --------------------------------------------------------
 
     CWPHYMode activePHYMode =
         [interface activePHYMode];
-
 
     network.connected =
         (activePHYMode != kCWPHYModeNone);
 
 
-    // ============================================================
-    // If disconnected, return the default network.
-    //
-    // This prevents stale SSID/BSSID/radio information from
-    // remaining on the dashboard after Wi-Fi is turned off.
-    // ============================================================
+    // --------------------------------------------------------
+    // If we're not connected, return the default network.
+    // --------------------------------------------------------
 
     if (!network.connected)
     {
-        network.signalStrength = 0;
-        network.noise = 0;
-        network.transmitRate = 0.0;
-
-        network.channel = 0;
-
-        network.snr = 0;
-
-        network.ssid.clear();
-        network.bssid.clear();
-
-        network.band.clear();
-        network.phyMode.clear();
-        network.channelWidth.clear();
-
-        network.signalQuality.clear();
-        network.snrQuality.clear();
-
         return network;
     }
 
 
-    // ============================================================
+    // --------------------------------------------------------
     // SSID
-    // ============================================================
+    // --------------------------------------------------------
 
     NSData *ssidData =
         [interface ssidData];
-
 
     if (ssidData != nil)
     {
@@ -257,7 +255,6 @@ WiFiNetwork WiFiMacOS::getCurrentNetwork()
                 initWithData:ssidData
                     encoding:NSUTF8StringEncoding];
 
-
         if (ssid != nil)
         {
             network.ssid =
@@ -266,16 +263,15 @@ WiFiNetwork WiFiMacOS::getCurrentNetwork()
     }
 
 
-    // ------------------------------------------------------------
-    // Fallback to string-based SSID API.
-    // ------------------------------------------------------------
+    // --------------------------------------------------------
+    // SSID fallback
+    // --------------------------------------------------------
 
     if (network.ssid.empty())
     {
         NSString *ssid =
             [interface ssid];
 
-
         if (ssid != nil)
         {
             network.ssid =
@@ -284,13 +280,12 @@ WiFiNetwork WiFiMacOS::getCurrentNetwork()
     }
 
 
-    // ============================================================
+    // --------------------------------------------------------
     // BSSID
-    // ============================================================
+    // --------------------------------------------------------
 
     NSString *bssid =
         [interface bssid];
-
 
     if (bssid != nil)
     {
@@ -299,87 +294,23 @@ WiFiNetwork WiFiMacOS::getCurrentNetwork()
     }
 
 
-    // ============================================================
-    // LIVE RADIO MEASUREMENTS
-    // ============================================================
+    // --------------------------------------------------------
+    // Signal measurements
+    // --------------------------------------------------------
 
     network.signalStrength =
         [interface rssiValue];
 
-
     network.noise =
         [interface noiseMeasurement];
-
 
     network.transmitRate =
         [interface transmitRate];
 
 
-    // ============================================================
-    // SNR
-    //
-    // SNR = RSSI - Noise
-    //
-    // Example:
-    //
-    // RSSI  = -55 dBm
-    // Noise = -90 dBm
-    //
-    // SNR = -55 - (-90)
-    //     = 35 dB
-    // ============================================================
-
-    network.snr =
-        network.signalStrength - network.noise;
-
-
-    // ============================================================
-    // SIGNAL QUALITY
-    // ============================================================
-
-    if (network.signalStrength >= -50)
-    {
-        network.signalQuality = "Excellent";
-    }
-    else if (network.signalStrength >= -60)
-    {
-        network.signalQuality = "Good";
-    }
-    else if (network.signalStrength >= -70)
-    {
-        network.signalQuality = "Fair";
-    }
-    else
-    {
-        network.signalQuality = "Weak";
-    }
-
-
-    // ============================================================
-    // SNR QUALITY
-    // ============================================================
-
-    if (network.snr >= 40)
-    {
-        network.snrQuality = "Excellent";
-    }
-    else if (network.snr >= 25)
-    {
-        network.snrQuality = "Good";
-    }
-    else if (network.snr >= 15)
-    {
-        network.snrQuality = "Fair";
-    }
-    else
-    {
-        network.snrQuality = "Poor";
-    }
-
-
-    // ============================================================
-    // PHY MODE
-    // ============================================================
+    // --------------------------------------------------------
+    // PHY mode
+    // --------------------------------------------------------
 
     switch (activePHYMode)
     {
@@ -413,101 +344,452 @@ WiFiNetwork WiFiMacOS::getCurrentNetwork()
     }
 
 
-    // ============================================================
-    // CHANNEL / BAND / CHANNEL WIDTH
-    // ============================================================
+    // --------------------------------------------------------
+    // Channel
+    // --------------------------------------------------------
 
     CWChannel *channel =
         [interface wlanChannel];
 
-
     if (channel != nil)
     {
-        // --------------------------------------------------------
-        // Channel number
-        // --------------------------------------------------------
-
         network.channel =
             [channel channelNumber];
 
 
-        // --------------------------------------------------------
-        // Frequency band
-        // --------------------------------------------------------
+        // ----------------------------------------------------
+        // Band
+        // ----------------------------------------------------
 
         switch ([channel channelBand])
         {
             case kCWChannelBand2GHz:
-
                 network.band = "2.4 GHz";
-
                 break;
-
 
             case kCWChannelBand5GHz:
-
                 network.band = "5 GHz";
-
                 break;
-
 
             case kCWChannelBand6GHz:
-
                 network.band = "6 GHz";
-
                 break;
 
-
             default:
-
                 network.band = "Unknown";
-
                 break;
         }
 
 
-        // --------------------------------------------------------
+        // ----------------------------------------------------
         // Channel width
-        // --------------------------------------------------------
+        // ----------------------------------------------------
 
         switch ([channel channelWidth])
         {
             case kCWChannelWidth20MHz:
-
                 network.channelWidth = "20 MHz";
-
                 break;
-
 
             case kCWChannelWidth40MHz:
-
                 network.channelWidth = "40 MHz";
-
                 break;
-
 
             case kCWChannelWidth80MHz:
-
                 network.channelWidth = "80 MHz";
-
                 break;
-
 
             case kCWChannelWidth160MHz:
-
                 network.channelWidth = "160 MHz";
-
                 break;
 
-
             default:
-
                 network.channelWidth = "Unknown";
-
                 break;
         }
     }
 
 
+    // --------------------------------------------------------
+    // SNR
+    // --------------------------------------------------------
+
+    network.snr =
+        network.signalStrength -
+        network.noise;
+
+
+    // --------------------------------------------------------
+    // Signal quality
+    // --------------------------------------------------------
+
+    if (network.signalStrength >= -50)
+    {
+        network.signalQuality = "Excellent";
+    }
+    else if (network.signalStrength >= -60)
+    {
+        network.signalQuality = "Good";
+    }
+    else if (network.signalStrength >= -70)
+    {
+        network.signalQuality = "Fair";
+    }
+    else
+    {
+        network.signalQuality = "Weak";
+    }
+
+
+    // --------------------------------------------------------
+    // SNR quality
+    // --------------------------------------------------------
+
+    if (network.snr >= 40)
+    {
+        network.snrQuality = "Excellent";
+    }
+    else if (network.snr >= 25)
+    {
+        network.snrQuality = "Good";
+    }
+    else if (network.snr >= 15)
+    {
+        network.snrQuality = "Fair";
+    }
+    else
+    {
+        network.snrQuality = "Poor";
+    }
+
+
     return network;
+}
+
+
+// ============================================================
+// Nearby network scanner
+// ============================================================
+
+std::vector<WiFiNetwork> WiFiMacOS::scanNetworks()
+{
+    std::vector<WiFiNetwork> networks;
+
+
+    // --------------------------------------------------------
+    // Get Wi-Fi interface
+    // --------------------------------------------------------
+
+    CWWiFiClient *client =
+        [CWWiFiClient sharedWiFiClient];
+
+    CWInterface *interface =
+        [client interface];
+
+
+    if (interface == nil)
+    {
+        NSLog(
+            @"WiFi Monitor: no Wi-Fi interface available."
+        );
+
+        return networks;
+    }
+
+
+    // --------------------------------------------------------
+    // Make sure Wi-Fi is powered on
+    // --------------------------------------------------------
+
+    if (![interface powerOn])
+    {
+        NSLog(
+            @"WiFi Monitor: Wi-Fi is powered off."
+        );
+
+        return networks;
+    }
+
+
+    NSLog(
+        @"WiFi Monitor: starting nearby-network scan..."
+    );
+
+
+    // --------------------------------------------------------
+    // Perform broadcast scan
+    //
+    // nil = scan for all available SSIDs
+    // YES = include hidden networks when available
+    // --------------------------------------------------------
+
+    NSError *error = nil;
+
+    NSSet<CWNetwork *> *results =
+        [interface scanForNetworksWithName:nil
+                             includeHidden:YES
+                                     error:&error];
+
+
+    if (results == nil)
+    {
+        NSLog(
+            @"WiFi Monitor: scan failed: %@",
+            error
+        );
+
+        return networks;
+    }
+
+
+    // --------------------------------------------------------
+    // Convert CoreWLAN results into WiFiNetwork objects
+    // --------------------------------------------------------
+
+    for (CWNetwork *result in results)
+    {
+        if (result == nil)
+        {
+            continue;
+        }
+
+
+        WiFiNetwork network;
+
+
+        // ----------------------------------------------------
+        // A scanned network is not automatically the current
+        // network.
+        // ----------------------------------------------------
+
+        network.connected = false;
+
+
+        // ----------------------------------------------------
+        // SSID
+        // ----------------------------------------------------
+
+        NSString *ssid =
+            [result ssid];
+
+        if (ssid != nil)
+        {
+            network.ssid =
+                [ssid UTF8String];
+        }
+
+
+        // ----------------------------------------------------
+        // BSSID
+        // ----------------------------------------------------
+
+        NSString *bssid =
+            [result bssid];
+
+        if (bssid != nil)
+        {
+            network.bssid =
+                [bssid UTF8String];
+        }
+
+
+        // ----------------------------------------------------
+        // RSSI
+        // ----------------------------------------------------
+
+        network.signalStrength =
+            [result rssiValue];
+
+
+        // ----------------------------------------------------
+        // Noise
+        // ----------------------------------------------------
+
+        network.noise =
+            [result noiseMeasurement];
+
+
+        // ----------------------------------------------------
+        // Channel
+        // ----------------------------------------------------
+
+        CWChannel *networkChannel =
+            [result wlanChannel];
+
+        if (networkChannel != nil)
+        {
+            network.channel =
+                [networkChannel channelNumber];
+
+
+            // ------------------------------------------------
+            // Band
+            // ------------------------------------------------
+
+            switch ([networkChannel channelBand])
+            {
+                case kCWChannelBand2GHz:
+                    network.band = "2.4 GHz";
+                    break;
+
+                case kCWChannelBand5GHz:
+                    network.band = "5 GHz";
+                    break;
+
+                case kCWChannelBand6GHz:
+                    network.band = "6 GHz";
+                    break;
+
+                default:
+                    network.band = "Unknown";
+                    break;
+            }
+
+
+            // ------------------------------------------------
+            // Channel width
+            // ------------------------------------------------
+
+            switch ([networkChannel channelWidth])
+            {
+                case kCWChannelWidth20MHz:
+                    network.channelWidth = "20 MHz";
+                    break;
+
+                case kCWChannelWidth40MHz:
+                    network.channelWidth = "40 MHz";
+                    break;
+
+                case kCWChannelWidth80MHz:
+                    network.channelWidth = "80 MHz";
+                    break;
+
+                case kCWChannelWidth160MHz:
+                    network.channelWidth = "160 MHz";
+                    break;
+
+                default:
+                    network.channelWidth = "Unknown";
+                    break;
+            }
+        }
+
+
+        // ----------------------------------------------------
+        // Nearby networks do not provide the same current-link
+        // transmit rate / PHY information.
+        // ----------------------------------------------------
+
+        network.transmitRate = 0.0;
+        network.phyMode = "Unknown";
+
+
+        // ----------------------------------------------------
+        // Derived SNR
+        // ----------------------------------------------------
+
+        network.snr =
+            network.signalStrength -
+            network.noise;
+
+
+        // ----------------------------------------------------
+        // Signal quality
+        // ----------------------------------------------------
+
+        if (network.signalStrength >= -50)
+        {
+            network.signalQuality = "Excellent";
+        }
+        else if (network.signalStrength >= -60)
+        {
+            network.signalQuality = "Good";
+        }
+        else if (network.signalStrength >= -70)
+        {
+            network.signalQuality = "Fair";
+        }
+        else
+        {
+            network.signalQuality = "Weak";
+        }
+
+
+        // ----------------------------------------------------
+        // SNR quality
+        // ----------------------------------------------------
+
+        if (network.snr >= 40)
+        {
+            network.snrQuality = "Excellent";
+        }
+        else if (network.snr >= 25)
+        {
+            network.snrQuality = "Good";
+        }
+        else if (network.snr >= 15)
+        {
+            network.snrQuality = "Fair";
+        }
+        else
+        {
+            network.snrQuality = "Poor";
+        }
+
+
+        networks.push_back(network);
+    }
+
+
+    // --------------------------------------------------------
+    // Sort strongest → weakest
+    //
+    // RSSI:
+    // -40 dBm > -60 dBm > -80 dBm
+    // --------------------------------------------------------
+
+    std::sort(
+        networks.begin(),
+        networks.end(),
+        [](const WiFiNetwork &a,
+           const WiFiNetwork &b)
+        {
+            return a.signalStrength >
+                   b.signalStrength;
+        }
+    );
+
+
+    // --------------------------------------------------------
+    // Print scan results for this development stage
+    // --------------------------------------------------------
+
+    NSLog(
+        @"WiFi Monitor: scan found %lu networks.",
+        (unsigned long)networks.size()
+    );
+
+
+    for (const WiFiNetwork &network : networks)
+    {
+        NSLog(
+            @"WiFi NETWORK: SSID=\"%s\" "
+            @"BSSID=\"%s\" "
+            @"RSSI=%d dBm "
+            @"Noise=%d dBm "
+            @"SNR=%d dB "
+            @"Channel=%d "
+            @"Band=\"%s\"",
+            network.ssid.c_str(),
+            network.bssid.c_str(),
+            network.signalStrength,
+            network.noise,
+            network.snr,
+            network.channel,
+            network.band.c_str()
+        );
+    }
+
+
+    return networks;
 }

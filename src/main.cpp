@@ -17,6 +17,7 @@ int main(int argc, char *argv[])
         &controller
     );
 
+
     const QUrl url(
         QStringLiteral("qrc:/qt/qml/WiFiMonitor/qml/Main.qml")
     );

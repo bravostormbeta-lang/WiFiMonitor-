@@ -4,14 +4,33 @@
 #include "WiFiNetwork.h"
 #include "IWiFiPlatform.h"
 
+#include <vector>
+
 class WiFiMonitor
 {
 public:
-    explicit WiFiMonitor(IWiFiPlatform* platform);
+
+    explicit WiFiMonitor(
+        IWiFiPlatform* platform
+    );
+
+
+    // ============================================================
+    // Current connection
+    // ============================================================
 
     WiFiNetwork getCurrentNetwork() const;
 
+
+    // ============================================================
+    // Nearby networks
+    // ============================================================
+
+    std::vector<WiFiNetwork> scanNetworks() const;
+
+
 private:
+
     IWiFiPlatform* platform;
 };
 

@@ -3,12 +3,31 @@
 
 #include "WiFiNetwork.h"
 
+#include <vector>
+
 class IWiFiPlatform
 {
 public:
-    virtual WiFiNetwork getCurrentNetwork() = 0;
 
     virtual ~IWiFiPlatform() = default;
+
+
+    // ============================================================
+    // Current Wi-Fi connection
+    // ============================================================
+
+    virtual WiFiNetwork getCurrentNetwork() = 0;
+
+
+    // ============================================================
+    // Nearby Wi-Fi networks
+    // ============================================================
+
+    /*
+     * Perform a fresh scan and return the networks currently
+     * visible to the operating system.
+     */
+    virtual std::vector<WiFiNetwork> scanNetworks() = 0;
 };
 
 #endif
