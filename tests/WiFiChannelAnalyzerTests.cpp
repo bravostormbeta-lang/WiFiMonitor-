@@ -694,6 +694,236 @@ int main()
 
 
     // ========================================================
+    // 11. Empty scan data
+    //
+    // An empty scan must not produce a recommendation or
+    // fabricated channel analysis.
+    // ========================================================
+
+    {
+        const auto analyses =
+            analyzer.analyze(
+                {}
+            );
+
+        const ChannelRecommendation recommendation24 =
+            analyzer.recommendation(
+                analyses,
+                "2.4 GHz"
+            );
+
+        const ChannelRecommendation recommendation5 =
+            analyzer.recommendation(
+                analyses,
+                "5 GHz"
+            );
+
+        check(
+            analyses.empty(),
+            "Empty scan: produces no channel analyses"
+        );
+
+        check(
+            recommendation24.channel == 0 &&
+            recommendation24.confidence == 0 &&
+            recommendation5.channel == 0 &&
+            recommendation5.confidence == 0,
+            "Empty scan: produces no recommendations"
+        );
+    }
+
+
+    // ========================================================
+    // 12. Unknown channel
+    //
+    // Channel 0 means the operating system did not provide a
+    // usable channel. It should not become a real candidate.
+    // ========================================================
+
+    {
+        const auto analyses =
+            analyzer.analyze(
+                {
+                    makeNetwork(
+                        "5 GHz",
+                        0,
+                        -50
+                    ),
+                    makeNetwork(
+                        "5 GHz",
+                        149,
+                        -60
+                    )
+                }
+            );
+
+        const ChannelAnalysis* unknown =
+            findChannel(
+                analyses,
+                "5 GHz",
+                0
+            );
+
+        const ChannelAnalysis* valid =
+            findChannel(
+                analyses,
+                "5 GHz",
+                149
+            );
+
+        check(
+            unknown == nullptr,
+            "Unknown channel: channel 0 is ignored"
+        );
+
+        check(
+            valid != nullptr &&
+            valid->channel == 149,
+            "Unknown channel: valid channel remains available"
+        );
+    }
+
+
+    // ========================================================
+    // 13. Unknown channel width
+    //
+    // An unavailable/unknown width must not be interpreted as
+    // a wide channel. The stored width should remain 0.
+    // ========================================================
+
+    {
+        const auto analyses =
+            analyzer.analyze(
+                {
+                    makeNetwork(
+                        "5 GHz",
+                        36,
+                        -50,
+                        "Unknown"
+                    )
+                }
+            );
+
+        const ChannelAnalysis* channel36 =
+            findChannel(
+                analyses,
+                "5 GHz",
+                36
+            );
+
+        check(
+            channel36 != nullptr &&
+            channel36->maxChannelWidthMHz == 0,
+            "Unknown width: stored width remains unknown"
+        );
+    }
+
+
+    // ========================================================
+    // 14. Zero/invalid RSSI
+    //
+    // A zero RSSI is not a realistic received-signal value.
+    // It must not make a channel appear extremely congested.
+    // ========================================================
+
+    {
+        const auto analyses =
+            analyzer.analyze(
+                {
+                    makeNetwork(
+                        "2.4 GHz",
+                        1,
+                        0
+                    )
+                }
+            );
+
+        const ChannelAnalysis* channel1 =
+            findChannel(
+                analyses,
+                "2.4 GHz",
+                1
+            );
+
+        check(
+            channel1 != nullptr &&
+            channel1->congestionScore < 30,
+            "Invalid RSSI: 0 dBm is not high congestion"
+        );
+    }
+
+
+    // ========================================================
+    // 15. Unknown band
+    //
+    // Unsupported band information should not result in a
+    // fabricated recommendation.
+    // ========================================================
+
+    {
+        const auto analyses =
+            analyzer.analyze(
+                {
+                    makeNetwork(
+                        "Unknown",
+                        36,
+                        -50
+                    )
+                }
+            );
+
+        const ChannelRecommendation recommendation =
+            analyzer.recommendation(
+                analyses,
+                "Unknown"
+            );
+
+        check(
+            recommendation.channel == 0 &&
+            recommendation.confidence == 0,
+            "Unknown band: no fabricated recommendation"
+        );
+    }
+
+
+    // ========================================================
+    // 16. Partial network information
+    //
+    // Missing optional fields should not prevent the analyzer
+    // from processing a network with otherwise valid channel
+    // and signal information.
+    // ========================================================
+
+    {
+        WiFiNetwork network;
+
+        network.channel = 11;
+        network.band = "2.4 GHz";
+        network.signalStrength = -60;
+
+        const auto analyses =
+            analyzer.analyze(
+                {
+                    network
+                }
+            );
+
+        const ChannelAnalysis* channel11 =
+            findChannel(
+                analyses,
+                "2.4 GHz",
+                11
+            );
+
+        check(
+            channel11 != nullptr &&
+            channel11->networkCount == 1,
+            "Partial network: valid radio data is still analysed"
+        );
+    }
+
+
+    // ========================================================
     // 6 GHz no-data behavior
     //
     // Extra safety test: no fabricated 6 GHz recommendation.

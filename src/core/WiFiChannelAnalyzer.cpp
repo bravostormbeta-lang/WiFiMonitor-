@@ -22,6 +22,12 @@ namespace
 
 int signalWeight(int rssi)
 {
+    // RSSI == 0 is used by WiFiNetwork as an
+    // unavailable / uninitialized signal value.
+    // It must not be interpreted as -30 dBm.
+    if (rssi == 0)
+        return 0;
+
     const int clamped =
         std::max(
             -95,
