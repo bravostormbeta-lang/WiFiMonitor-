@@ -4344,7 +4344,7 @@ Window {
                     parent.width
 
                 height:
-                    410
+                    700
 
                 radius:
                     17
@@ -4365,7 +4365,7 @@ Window {
                         parent
 
                     anchors.margins:
-                        18
+                        14
 
                     spacing:
                         12
@@ -4381,7 +4381,7 @@ Window {
                             parent.width
 
                         height:
-                            34
+                            46
 
 
                         Column {
@@ -4401,16 +4401,16 @@ Window {
                                     "CHANNEL INTELLIGENCE"
 
                                 color:
-                                    textSecondary
+                                    textPrimary
 
                                 font.pixelSize:
-                                    11
+                                    18
 
                                 font.bold:
                                     true
 
                                 font.letterSpacing:
-                                    1.5
+                                    1.2
                             }
 
 
@@ -4420,10 +4420,10 @@ Window {
                                     "Observed channel usage, recommendations, and confidence"
 
                                 color:
-                                    textMuted
+                                    textSecondary
 
                                 font.pixelSize:
-                                    10
+                                    13
                             }
                         }
 
@@ -4434,13 +4434,13 @@ Window {
                                 channelIntelligenceStatus
 
                             width:
-                                132
+                                158
 
                             height:
-                                28
+                                38
 
                             radius:
-                                9
+                                10
 
                             color:
                                 wifiController.nearbyNetworks.length > 0
@@ -4455,7 +4455,7 @@ Window {
                             border.color:
                                 wifiController.nearbyNetworks.length > 0
                                 ?
-                                "#6e2024"
+                                red
                                 :
                                 border
 
@@ -4468,7 +4468,7 @@ Window {
                                 text:
                                     wifiController.nearbyNetworks.length > 0
                                     ?
-                                    "ANALYSIS READY"
+                                    "✓  ANALYSIS READY"
                                     :
                                     "AWAITING SCAN"
 
@@ -4480,13 +4480,13 @@ Window {
                                     textMuted
 
                                 font.pixelSize:
-                                    9
+                                    11
 
                                 font.bold:
                                     true
 
                                 font.letterSpacing:
-                                    0.6
+                                    0.5
                             }
                         }
                     }
@@ -4502,7 +4502,7 @@ Window {
                             parent.width
 
                         height:
-                            292
+                            560
 
                         spacing:
                             10
@@ -4524,7 +4524,7 @@ Window {
                                     (parent.width - 20) / 3
 
                                 height:
-                                    292
+                                    560
 
                                 radius:
                                     12
@@ -4657,26 +4657,43 @@ Window {
                                         parent
 
                                     anchors.margins:
-                                        12
+                                        14
 
                                     spacing:
-                                        8
+                                        10
 
 
                                     // ---------------------------------
                                     // BAND HEADER
                                     // ---------------------------------
 
-                                    Row {
+                                    Item {
 
                                         width:
                                             parent.width
 
                                         height:
-                                            22
+                                            38
+
+                                        clip:
+                                            true
 
 
                                         Text {
+
+                                            id:
+                                                bandTitle
+
+                                            anchors.left:
+                                                parent.left
+
+                                            anchors.verticalCenter:
+                                                parent.verticalCenter
+
+                                            width:
+                                                parent.width -
+                                                bandApBadge.width -
+                                                12
 
                                             text:
                                                 bandName
@@ -4685,56 +4702,109 @@ Window {
                                                 textPrimary
 
                                             font.pixelSize:
-                                                13
+                                                20
 
                                             font.bold:
                                                 true
+
+                                            verticalAlignment:
+                                                Text.AlignVCenter
+
+                                            elide:
+                                                Text.ElideRight
                                         }
 
 
-                                        Item {
-
-                                            width:
-                                                parent.width -
-                                                bandApCount.width -
-                                                8
-
-                                            height:
-                                                1
-                                        }
-
-
-                                        Text {
+                                        Rectangle {
 
                                             id:
-                                                bandApCount
+                                                bandApBadge
 
-                                            text:
-                                                hasNetworks
-                                                ?
-                                                totalNetworks +
-                                                (
-                                                    totalNetworks === 1
-                                                    ?
-                                                    " AP"
-                                                    :
-                                                    " APs"
-                                                )
-                                                :
-                                                "NO DATA"
+                                            anchors.right:
+                                                parent.right
+
+                                            anchors.rightMargin:
+                                                0
+
+                                            anchors.verticalCenter:
+                                                parent.verticalCenter
+
+                                            width:
+                                                96
+
+                                            height:
+                                                34
+
+                                            radius:
+                                                10
 
                                             color:
-                                                hasNetworks
-                                                ?
-                                                textSecondary
-                                                :
-                                                textMuted
+                                                "#111820"
 
-                                            font.pixelSize:
-                                                9
+                                            border.width:
+                                                1
 
-                                            font.bold:
-                                                true
+                                            border.color:
+                                                borderStrong
+
+
+                                            Row {
+
+                                                anchors.centerIn:
+                                                    parent
+
+                                                spacing:
+                                                    8
+
+
+                                                Text {
+
+                                                    text:
+                                                        "⌁"
+
+                                                    color:
+                                                        textSecondary
+
+                                                    font.pixelSize:
+                                                        20
+
+                                                    font.bold:
+                                                        true
+
+                                                    verticalAlignment:
+                                                        Text.AlignVCenter
+                                                }
+
+
+                                                Text {
+
+                                                    text:
+                                                        hasNetworks
+                                                        ?
+                                                        totalNetworks +
+                                                        (
+                                                            totalNetworks === 1
+                                                            ?
+                                                            " AP"
+                                                            :
+                                                            " APs"
+                                                        )
+                                                        :
+                                                        "0 APs"
+
+                                                    color:
+                                                        textPrimary
+
+                                                    font.pixelSize:
+                                                        12
+
+                                                    font.bold:
+                                                        true
+
+                                                    verticalAlignment:
+                                                        Text.AlignVCenter
+                                                }
+                                            }
                                         }
                                     }
 
@@ -4749,10 +4819,10 @@ Window {
                                             parent.width
 
                                         height:
-                                            48
+                                            72
 
                                         radius:
-                                            9
+                                            10
 
                                         color:
                                             hasNetworks &&
@@ -4769,9 +4839,9 @@ Window {
                                             hasNetworks &&
                                             recommendation > 0
                                             ?
-                                            "#6e2024"
+                                            red
                                             :
-                                            border
+                                            borderStrong
 
 
                                         Row {
@@ -4780,13 +4850,13 @@ Window {
                                                 parent
 
                                             anchors.leftMargin:
-                                                10
+                                                14
 
                                             anchors.rightMargin:
-                                                10
+                                                14
 
                                             spacing:
-                                                8
+                                                10
 
 
                                             Column {
@@ -4794,13 +4864,13 @@ Window {
                                                 width:
                                                     parent.width -
                                                     recommendationChannel.width -
-                                                    8
+                                                    10
 
                                                 anchors.verticalCenter:
                                                     parent.verticalCenter
 
                                                 spacing:
-                                                    2
+                                                    3
 
 
                                                 Text {
@@ -4815,20 +4885,27 @@ Window {
                                                         "RECOMMENDATION"
 
                                                     color:
-                                                        hasNetworks
+                                                        hasNetworks &&
+                                                        recommendation > 0
                                                         ?
                                                         redBright
                                                         :
-                                                        textMuted
+                                                        textSecondary
 
                                                     font.pixelSize:
-                                                        8
+                                                        11
 
                                                     font.bold:
                                                         true
 
                                                     font.letterSpacing:
-                                                        0.7
+                                                        0.5
+
+                                                    elide:
+                                                        Text.ElideRight
+
+                                                    width:
+                                                        parent.width
                                                 }
 
 
@@ -4847,7 +4924,7 @@ Window {
                                                         textPrimary
 
                                                     font.pixelSize:
-                                                        12
+                                                        19
 
                                                     font.bold:
                                                         true
@@ -4875,10 +4952,10 @@ Window {
                                                     ?
                                                     redBright
                                                     :
-                                                    textMuted
+                                                    textSecondary
 
                                                 font.pixelSize:
-                                                    16
+                                                    24
 
                                                 font.bold:
                                                     true
@@ -4893,35 +4970,8 @@ Window {
                                     // ---------------------------------
                                     // RECOMMENDATION REASON
                                     // ---------------------------------
-
-                                    Text {
-
-                                        width:
-                                            parent.width
-
-                                        height:
-                                            20
-
-                                        text:
-                                            hasNetworks
-                                            ?
-                                            recommendationReason
-                                            :
-                                            "No scan data available."
-
-                                        color:
-                                            textMuted
-
-                                        font.pixelSize:
-                                            8
-
-                                        elide:
-                                            Text.ElideRight
-
-                                        verticalAlignment:
-                                            Text.AlignVCenter
-                                    }
-
+                                    // Removed completely from the UI.
+                                    // No Rectangle and no Text are created here.
 
                                     // ---------------------------------
                                     // OBSERVED METRICS
@@ -4933,10 +4983,10 @@ Window {
                                             parent.width
 
                                         height:
-                                            43
+                                            70
 
                                         spacing:
-                                            5
+                                            8
 
 
                                         Repeater {
@@ -4971,7 +5021,7 @@ Window {
 
                                                 {
                                                     label:
-                                                        "MAX CONGESTION",
+                                                        "MAX CONGESTION SCORE",
 
                                                     value:
                                                         hasNetworks
@@ -4989,23 +5039,23 @@ Window {
                                                 width:
                                                     (
                                                         parent.width -
-                                                        10
+                                                        16
                                                     ) / 3
 
                                                 height:
-                                                    43
+                                                    70
 
                                                 radius:
-                                                    7
+                                                    9
 
                                                 color:
-                                                    "#090b0e"
+                                                    "#0a0d11"
 
                                                 border.width:
                                                     1
 
                                                 border.color:
-                                                    "#181b20"
+                                                    borderStrong
 
 
                                                 Column {
@@ -5014,25 +5064,31 @@ Window {
                                                         parent
 
                                                     spacing:
-                                                        2
+                                                        5
 
 
                                                     Text {
 
-                                                        anchors.horizontalCenter:
-                                                            parent.horizontalCenter
+                                                        width:
+                                                            parent.width
 
                                                         text:
                                                             modelData.label
 
                                                         color:
-                                                            textMuted
+                                                            textSecondary
 
                                                         font.pixelSize:
-                                                            7
+                                                            9
 
                                                         font.bold:
                                                             true
+
+                                                        horizontalAlignment:
+                                                            Text.AlignHCenter
+
+                                                        wrapMode:
+                                                            Text.WordWrap
                                                     }
 
 
@@ -5050,7 +5106,7 @@ Window {
                                                             textPrimary
 
                                                         font.pixelSize:
-                                                            10
+                                                            16
 
                                                         font.bold:
                                                             true
@@ -5070,7 +5126,7 @@ Window {
                                         text:
                                             hasNetworks
                                             ?
-                                            "DETECTED CHANNELS"
+                                            "DETECTED CHANNELS (TOP)"
                                             :
                                             "CHANNEL STATUS"
 
@@ -5078,7 +5134,7 @@ Window {
                                             textSecondary
 
                                         font.pixelSize:
-                                            8
+                                            12
 
                                         font.bold:
                                             true
@@ -5094,7 +5150,7 @@ Window {
                                             parent.width
 
                                         spacing:
-                                            4
+                                            5
 
 
                                         Repeater {
@@ -5113,10 +5169,10 @@ Window {
                                                     parent.width
 
                                                 height:
-                                                    25
+                                                    34
 
                                                 radius:
-                                                    6
+                                                    7
 
                                                 color:
                                                     Number(
@@ -5137,7 +5193,7 @@ Window {
                                                     ) ===
                                                     recommendation
                                                     ?
-                                                    "#5e2226"
+                                                    "#6e2024"
                                                     :
                                                     "#181b20"
 
@@ -5148,19 +5204,19 @@ Window {
                                                         parent
 
                                                     anchors.leftMargin:
-                                                        7
+                                                        9
 
                                                     anchors.rightMargin:
-                                                        7
+                                                        9
 
                                                     spacing:
-                                                        7
+                                                        8
 
 
                                                     Text {
 
                                                         width:
-                                                            38
+                                                            42
 
                                                         text:
                                                             "CH " +
@@ -5177,7 +5233,7 @@ Window {
                                                             textPrimary
 
                                                         font.pixelSize:
-                                                            8
+                                                            11
 
                                                         font.bold:
                                                             true
@@ -5190,19 +5246,27 @@ Window {
                                                     Text {
 
                                                         width:
-                                                            28
+                                                            34
 
                                                         text:
                                                             Number(
                                                                 modelData.networkCount
                                                             ) +
-                                                            " AP"
+                                                            (
+                                                                Number(
+                                                                    modelData.networkCount
+                                                                ) === 1
+                                                                ?
+                                                                " AP"
+                                                                :
+                                                                " APs"
+                                                            )
 
                                                         color:
-                                                            textMuted
+                                                            textSecondary
 
                                                         font.pixelSize:
-                                                            8
+                                                            10
 
                                                         verticalAlignment:
                                                             Text.AlignVCenter
@@ -5213,22 +5277,22 @@ Window {
 
                                                         width:
                                                             parent.width -
-                                                            38 -
-                                                            28 -
-                                                            48 -
-                                                            14
+                                                            42 -
+                                                            34 -
+                                                            52 -
+                                                            16
 
                                                         height:
-                                                            4
+                                                            6
 
                                                         radius:
-                                                            2
+                                                            3
 
                                                         anchors.verticalCenter:
                                                             parent.verticalCenter
 
                                                         color:
-                                                            "#24272d"
+                                                            "#242a32"
 
 
                                                         Rectangle {
@@ -5250,7 +5314,7 @@ Window {
                                                                 parent.height
 
                                                             radius:
-                                                                2
+                                                                3
 
                                                             color:
                                                                 channelCongestionColor(
@@ -5263,7 +5327,7 @@ Window {
                                                     Text {
 
                                                         width:
-                                                            48
+                                                            52
 
                                                         text:
                                                             Number(
@@ -5276,7 +5340,7 @@ Window {
                                                             )
 
                                                         font.pixelSize:
-                                                            8
+                                                            12
 
                                                         font.bold:
                                                             true
@@ -5290,30 +5354,30 @@ Window {
                                                 }
                                             }
                                         }
-                                    }
 
 
-                                    Text {
+                                        Text {
 
-                                        visible:
-                                            !hasNetworks
+                                            visible:
+                                                !hasNetworks
 
-                                        width:
-                                            parent.width
+                                            width:
+                                                parent.width
 
-                                        text:
-                                            "No " +
-                                            bandName +
-                                            " networks detected"
+                                            text:
+                                                "No " +
+                                                bandName +
+                                                " networks detected"
 
-                                        color:
-                                            textMuted
+                                            color:
+                                                textSecondary
 
-                                        font.pixelSize:
-                                            9
+                                            font.pixelSize:
+                                                12
 
-                                        horizontalAlignment:
-                                            Text.AlignHCenter
+                                            horizontalAlignment:
+                                                Text.AlignHCenter
+                                        }
                                     }
                                 }
                             }
@@ -5325,22 +5389,56 @@ Window {
                     // FOOTNOTE
                     // =================================================
 
-                    Text {
+                    Rectangle {
 
                         width:
                             parent.width
 
-                        text:
-                            "Confidence reflects how clearly the latest observed scan favours the recommendation; it is not a probability or a measurement of total RF interference."
+                        height:
+                            34
+
+                        radius:
+                            8
 
                         color:
-                            textMuted
+                            "#10151b"
 
-                        font.pixelSize:
-                            9
+                        border.width:
+                            1
 
-                        horizontalAlignment:
-                            Text.AlignHCenter
+                        border.color:
+                            "#202832"
+
+
+                        Text {
+
+                            anchors.fill:
+                                parent
+
+                            anchors.leftMargin:
+                                14
+
+                            anchors.rightMargin:
+                                14
+
+                            text:
+                                "Confidence reflects how clearly the latest observed scan favours the recommendation; it is not a probability or a measurement of total RF interference."
+
+                            color:
+                                textSecondary
+
+                            font.pixelSize:
+                                11
+
+                            horizontalAlignment:
+                                Text.AlignHCenter
+
+                            verticalAlignment:
+                                Text.AlignVCenter
+
+                            wrapMode:
+                                Text.WordWrap
+                        }
                     }
                 }
             }
