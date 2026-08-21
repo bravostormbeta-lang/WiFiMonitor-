@@ -12,7 +12,7 @@
 #include "../core/WiFiMonitor.h"
 #include "../core/WiFiHistory.h"
 #include "../core/WiFiChannelAnalyzer.h"
-#include "../platform/macos/WiFiMacOS.h"
+#include "../core/IWiFiPlatform.h"
 
 
 class WiFiMonitorController : public QObject
@@ -81,7 +81,11 @@ class WiFiMonitorController : public QObject
 
 public:
 
-    explicit WiFiMonitorController(QObject *parent = nullptr);
+    explicit WiFiMonitorController(
+        IWiFiPlatform* platform,
+        QObject* parent = nullptr
+    );
+
 
     // ============================================================
     // Current connection
@@ -101,6 +105,7 @@ public:
     QString signalQuality() const;
     QString snrQuality() const;
 
+
     // ============================================================
     // History
     // ============================================================
@@ -109,6 +114,7 @@ public:
     QVariantList snrHistory() const;
     QVariantList noiseHistory() const;
     QVariantList transmitRateHistory() const;
+
 
     // ============================================================
     // Nearby networks
@@ -122,6 +128,7 @@ public:
     QVariantList channelStatistics() const;
     bool nearbyMonitoring() const;
 
+
     // ============================================================
     // Selected network
     // ============================================================
@@ -129,6 +136,7 @@ public:
     QString selectedNetworkBssid() const;
     QVariantList selectedNetworkRssiHistory() const;
     QVariantList selectedNetworkSnrHistory() const;
+
 
     // ============================================================
     // Channel intelligence
@@ -140,6 +148,7 @@ public:
     int recommended6GHzChannel() const;
     QVariantList channelRecommendations() const;
 
+
     // ============================================================
     // Operations
     // ============================================================
@@ -148,7 +157,7 @@ public:
 
     Q_INVOKABLE void scanNetworks();
     Q_INVOKABLE void stopNearbyMonitoring();
-    Q_INVOKABLE void selectNetwork(const QString &bssid);
+    Q_INVOKABLE void selectNetwork(const QString& bssid);
 
 
 signals:
@@ -188,9 +197,19 @@ signals:
 
 private:
 
-    WiFiMacOS platform;
+    // ============================================================
+    // Platform / core
+    //
+    // The controller depends only on the platform abstraction.
+    // The concrete platform implementation is owned by main().
+    // ============================================================
+
+    IWiFiPlatform* platform;
+
     WiFiMonitor monitor;
+
     WiFiChannelAnalyzer channelAnalyzer;
+
 
     QTimer timer;
     QTimer scanTimer;
@@ -198,22 +217,36 @@ private:
     WiFiNetwork currentNetwork;
     WiFiHistory history;
 
+
     QVariantList m_nearbyNetworks;
+
     int m_nearbyNetworkCount = 0;
+
     int m_networks24GHz = 0;
+
     int m_networks5GHz = 0;
+
     int m_networks6GHz = 0;
+
     QVariantList m_channelStatistics;
+
 
     bool m_nearbyMonitoring = false;
 
+
     std::string m_selectedNetworkBssid;
+
     std::map<std::string, WiFiHistory> nearbyHistories;
 
+
     QVariantList m_channelAnalyses;
+
     int m_recommended24GHzChannel = 0;
+
     int m_recommended5GHzChannel = 0;
+
     int m_recommended6GHzChannel = 0;
+
     QVariantList m_channelRecommendations;
 };
 

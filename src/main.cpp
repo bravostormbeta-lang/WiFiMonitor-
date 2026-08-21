@@ -3,6 +3,8 @@
 #include <QQmlContext>
 
 #include "ui/WiFiMonitorController.h"
+#include "platform/macos/WiFiMacOS.h"
+
 
 int main(int argc, char *argv[])
 {
@@ -10,7 +12,28 @@ int main(int argc, char *argv[])
 
     QQmlApplicationEngine engine;
 
-    WiFiMonitorController controller;
+
+    // ============================================================
+    // Platform implementation
+    //
+    // The application composition root owns the concrete
+    // platform implementation.
+    // ============================================================
+
+    WiFiMacOS platform;
+
+
+    // ============================================================
+    // Controller
+    //
+    // The controller receives the platform through the
+    // IWiFiPlatform abstraction.
+    // ============================================================
+
+    WiFiMonitorController controller(
+        &platform
+    );
+
 
     engine.rootContext()->setContextProperty(
         "wifiController",
@@ -21,6 +44,7 @@ int main(int argc, char *argv[])
     const QUrl url(
         QStringLiteral("qrc:/qt/qml/WiFiMonitor/qml/Main.qml")
     );
+
 
     QObject::connect(
         &engine,
@@ -33,7 +57,9 @@ int main(int argc, char *argv[])
         Qt::QueuedConnection
     );
 
+
     engine.load(url);
+
 
     return app.exec();
 }

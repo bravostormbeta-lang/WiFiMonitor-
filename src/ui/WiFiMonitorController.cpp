@@ -14,11 +14,12 @@
 // ============================================================
 
 WiFiMonitorController::WiFiMonitorController(
+    IWiFiPlatform* platform,
     QObject *parent
 )
     : QObject(parent),
-      platform(),
-      monitor(&platform),
+      platform(platform),
+      monitor(platform),
       history(60)
 {
     // ============================================================
