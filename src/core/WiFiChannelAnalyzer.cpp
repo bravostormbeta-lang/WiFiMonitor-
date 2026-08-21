@@ -1566,6 +1566,10 @@ WiFiChannelAnalyzer::recommendation(
 
     // ========================================================
     // Build explanation from actual observations.
+    //
+    // The explanation intentionally describes the result as
+    // observed / estimated channel pressure rather than claiming
+    // that the scan measured total RF interference.
     // ========================================================
 
     const ChannelAnalysis*
@@ -1616,7 +1620,50 @@ WiFiChannelAnalyzer::recommendation(
 
 
     // ========================================================
-    // Recommended channel is not directly observed.
+    // Start with the actual selection result.
+    // ========================================================
+
+    result.reason =
+        "Channel " +
+        std::to_string(
+            bestChannel
+        ) +
+        " has the lowest estimated congestion " +
+        "among the evaluated " +
+        band +
+        " candidates (score " +
+        std::to_string(
+            bestScore
+        ) +
+        ").";
+
+
+    // ========================================================
+    // Explain how clearly the winner was separated from the
+    // next-best candidate.
+    // ========================================================
+
+    if (
+        secondBestScore !=
+        std::numeric_limits<int>::max()
+    )
+    {
+        result.reason +=
+            " The next-best score is " +
+            std::to_string(
+                secondBestScore
+            ) +
+            ", giving a margin of " +
+            std::to_string(
+                margin
+            ) +
+            ".";
+    }
+
+
+    // ========================================================
+    // Explain whether the recommended primary channel itself
+    // was observed.
     // ========================================================
 
     if (
@@ -1624,53 +1671,14 @@ WiFiChannelAnalyzer::recommendation(
         nullptr
     )
     {
-        result.reason =
-            "No detected AP on channel " +
-            std::to_string(
-                bestChannel
-            ) +
-            "; it has the lowest estimated congestion. ";
-
-
-        if (
-            strongestObserved !=
-            nullptr
-        )
-        {
-            result.reason +=
-                "Strongest observed AP is CH " +
-                std::to_string(
-                    strongestObserved->channel
-                ) +
-                " at " +
-                std::to_string(
-                    strongestObserved->strongestRssi
-                ) +
-                " dBm.";
-
-
-            if (
-                strongestObserved->maxChannelWidthMHz > 0
-            )
-            {
-                result.reason +=
-                    " Observed width: " +
-                    std::to_string(
-                        strongestObserved->maxChannelWidthMHz
-                    ) +
-                    " MHz.";
-            }
-        }
+        result.reason +=
+            " No detected AP is using the recommended primary "
+            "channel.";
     }
-
-
-    // ========================================================
-    // Recommended channel already has an observed AP.
-    // ========================================================
-
     else
     {
-        result.reason =
+        result.reason +=
+            " " +
             std::to_string(
                 recommendedObserved->networkCount
             ) +
@@ -1682,29 +1690,85 @@ WiFiChannelAnalyzer::recommendation(
                 :
                 "s"
             ) +
-            " detected on CH " +
-            std::to_string(
-                bestChannel
-            ) +
-            "; strongest is " +
+            " was detected on that channel, with strongest "
+            "RSSI " +
             std::to_string(
                 recommendedObserved->strongestRssi
+            ) +
+            " dBm.";
+    }
+
+
+    // ========================================================
+    // Include width information when it is actually available.
+    // ========================================================
+
+    if (
+        recommendedObserved !=
+        nullptr &&
+        recommendedObserved->maxChannelWidthMHz > 0
+    )
+    {
+        result.reason +=
+            " Maximum observed width on the channel is " +
+            std::to_string(
+                recommendedObserved->maxChannelWidthMHz
+            ) +
+            " MHz.";
+    }
+
+
+    // ========================================================
+    // Identify the strongest AP in the observed environment.
+    //
+    // This gives the user context for the recommendation without
+    // treating the strongest AP as the only source of congestion.
+    // ========================================================
+
+    if (
+        strongestObserved !=
+        nullptr
+    )
+    {
+        result.reason +=
+            " Strongest observed AP is CH " +
+            std::to_string(
+                strongestObserved->channel
+            ) +
+            " at " +
+            std::to_string(
+                strongestObserved->strongestRssi
             ) +
             " dBm.";
 
 
         if (
-            recommendedObserved->maxChannelWidthMHz > 0
+            strongestObserved->maxChannelWidthMHz > 0
         )
         {
             result.reason +=
-                " Maximum observed width: " +
+                " Its maximum observed width is " +
                 std::to_string(
-                    recommendedObserved->maxChannelWidthMHz
+                    strongestObserved->maxChannelWidthMHz
                 ) +
                 " MHz.";
         }
     }
+
+
+    // ========================================================
+    // State the limitation explicitly.
+    //
+    // CoreWLAN scan data represents detected Wi-Fi networks and
+    // their reported radio characteristics. It does not provide
+    // a complete measurement of total RF interference or airtime
+    // utilization.
+    // ========================================================
+
+    result.reason +=
+        " Recommendation is based on detected Wi-Fi networks "
+        "and estimated channel overlap, not a direct measurement "
+        "of total RF interference or airtime utilization.";
 
 
     return result;
